@@ -1,31 +1,51 @@
-<script>
+<script lang="ts">
+	// interfaces
+	interface TableRow{
+		year: number,
+		payment_period: number,
+		remaining_mortgage: number,
+		payment_each_month: number,
+		principal_installments: number,
+		interest_installments: number,
+	}
+	// forTable[0] = {
+	// 		"year": 1,
+	// 		"payment_period": 1,
+	// 		"remaining_mortgage": remaining_mortgage_table,
+			// payment_each_month,
+			// principal_installments,
+			// interest_installments,
+	// 	}
+
 	// initial side
-	let cost = 100000
-	let mortgage_period = 360 // period in months
-	let dp_percentage = 0
-	let fixed_rate = 0.06
-	let floating_rate = 0
-	let fixed_period = 360 // period dimana mortage fixed
-	let floating_period = 0 // we don't count this
+	let cost: number = 0
+	let mortgage_period: number = 0 // period in months
+	let dp_percentage: number = 0
+	let fixed_rate: number = 0.0
+	let floating_rate: number = 0.0
+	let fixed_period: number = 0 // period dimana mortage fixed
+	let floating_period: number = mortgage_period - fixed_period // we don't count this
 
 	// result side
-	let dp_result = 0
-	let remaining_mortgage = 0
-	let remaining_mortgage_table = 0
-	let total_fixed_payment = 0
-	let total_floating_payment = 0
+	let dp_result : number = 0
+	let remaining_mortgage : number = 0
+	let remaining_mortgage_table : number = 0
+	let total_fixed_payment : number = 0
+	let total_floating_payment : number = 0
 	let forTable = []
-	let payment_each_month = 0
-	let interest_installments = 0
-	let principal_installments = 0
-	let grand_sum = 0;
-	let selected;
+	let yearlyTable = []
+	let payment_each_month : number = 0
+	let interest_installments : number = 0
+	let principal_installments : number = 0
+	let grand_sum : number = 0;
+	let selected : string;
 
-	function numberWithCommas(x) {
+	function numberWithCommas(x: string): string {
 		return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 	}
 
-	function getPaymentEachMonth(rem_mor, rate, mor_period) {
+	function getPaymentEachMonth(rem_mor: number, rate: number, mor_period: number): number {
+		console.log("rem_mor: "+rem_mor)
 		return (rem_mor * (rate / 12)) / (1 - 1 / Math.pow(1 + rate / 12, mor_period))
 	}
 
@@ -52,75 +72,103 @@
 	 	grand_sum = 0;
 	}
 
+	function changeTable(index: number) {
+		yearlyTable = []
+		// console.table(forTable)
+		// console.log("sent index: "+index)
+		let multiplier = 12*(index-1) // 12
+		let upperLimit = (12*index)-1 // 23
+		
+		console.log(multiplier)
+		console.log(upperLimit)
+		
+		for (multiplier; multiplier <= upperLimit; multiplier++) {
+			// yearlyTable.push(forTable[multiplier])
+			// yearlyTable = yearlyTable
+			yearlyTable[11 - (upperLimit - multiplier)] = forTable[multiplier]
+		}
+		
+		console.log(yearlyTable)
+	}
+
 	$: {
+		floating_period = mortgage_period - fixed_period
 		dp_result = cost * dp_percentage / 100
 		remaining_mortgage = cost - dp_result
 		// payment each month equation
 		// period = 10 years => 120 months
 
 		// buat menghitung
-		payment_each_month = getPaymentEachMonth(remaining_mortgage, fixed_rate, mortgage_period)
 
-		interest_installments = (remaining_mortgage * fixed_rate / 12)
+		if (cost != 0 && mortgage_period  != 0 && fixed_rate  != 0 && floating_rate  != 0 && fixed_period  != 0) {
+
+			payment_each_month = getPaymentEachMonth(remaining_mortgage, fixed_rate, mortgage_period)
+	
+			interest_installments = (remaining_mortgage * fixed_rate / 12)
+			
+			principal_installments = (payment_each_month - interest_installments)
+	
+			remaining_mortgage_table = remaining_mortgage - principal_installments
+	
+			forTable = []
+			forTable[0] = {
+				"year": 1,
+				"payment_period": 1,
+				"remaining_mortgage": remaining_mortgage_table,
+				payment_each_month,
+				principal_installments,
+				interest_installments,
+			}
+	
+			total_fixed_payment = 0
+			total_fixed_payment += interest_installments
+	
+			// makeDataForTable()
+			for (let index = 1; index < mortgage_period; index++) {
+				let remaining_payment = index < fixed_period ? remaining_mortgage : forTable[fixed_period-1].remaining_mortgage
+				let rate = index < fixed_period ? fixed_rate : floating_rate
+				let period = index < fixed_period ? mortgage_period : floating_period
+				// console.log("index: " + index)
+				// console.log("rate: " + rate)
+				// console.log("period: " +period)
+				
+				let temp_payment_each_month = getPaymentEachMonth(remaining_payment, rate, period)
+	
+				let temp_interest_installments = (forTable[index-1].remaining_mortgage * rate / 12)
+				
+				let temp_principal_installments = (temp_payment_each_month - temp_interest_installments)
+	
+				let temp_remaining_mortgage_table = Math.abs(forTable[index-1].remaining_mortgage - temp_principal_installments)
+	
+				forTable[index] = {
+					"year": Math.floor(index/12) + 1,
+					"payment_period": index + 1,
+					"remaining_mortgage": temp_remaining_mortgage_table,
+					"payment_each_month": temp_payment_each_month,
+					"principal_installments": temp_principal_installments,
+					"interest_installments": temp_interest_installments,
+				}
+	
+				if (index < fixed_period) {
+					total_fixed_payment += temp_interest_installments
+					// grand_sum += temp_interest_installments
+					// grand_sum = Number(grand_sum).toFixed(2)
+				} else {
+					total_floating_payment += temp_interest_installments
+					// grand_sum += temp_interest_installments
+					// grand_sum = Number(grand_sum).toFixed(2)
+				}
+			}
+	
+			total_fixed_payment = +Number(total_fixed_payment).toFixed(2)
+		}
 		
-		principal_installments = (payment_each_month - interest_installments)
-
-		remaining_mortgage_table = remaining_mortgage - principal_installments
-
-		forTable = []
-		forTable[0] = {
-			"year": 1,
-			"payment_period": 1,
-			"remaining_mortgage": remaining_mortgage_table,
-			payment_each_month,
-			principal_installments,
-			interest_installments,
-		}
-
-		total_fixed_payment = 0
-		total_fixed_payment += interest_installments
-
-		// makeDataForTable()
-		for (let index = 1; index < mortgage_period; index++) {
-			let rate = index < fixed_period ? fixed_rate : floating_rate
-			let period = index < fixed_period ? mortgage_period : floating_period
-			
-			let temp_payment_each_month = getPaymentEachMonth(remaining_mortgage, rate, period)
-
-			let temp_interest_installments = (forTable[index-1].remaining_mortgage * rate / 12)
-			
-			let temp_principal_installments = (temp_payment_each_month - temp_interest_installments)
-
-			let temp_remaining_mortgage_table = Math.abs(forTable[index-1].remaining_mortgage - temp_principal_installments)
-
-			forTable[index] = {
-				"year": Math.floor(index/12) + 1,
-				"payment_period": index + 1,
-				"remaining_mortgage": temp_remaining_mortgage_table,
-				"payment_each_month": temp_payment_each_month,
-				"principal_installments": temp_principal_installments,
-				"interest_installments": temp_interest_installments,
-			}
-
-			if (index < fixed_period) {
-				total_fixed_payment += temp_interest_installments
-				grand_sum += temp_interest_installments
-				grand_sum = Number(grand_sum).toFixed(2)
-			} else {
-				total_floating_payment += temp_interest_installments
-				grand_sum += temp_interest_installments
-				grand_sum = Number(grand_sum).toFixed(2)
-			}
-		}
-
-		total_fixed_payment = Number(total_fixed_payment).toFixed(2)
 	}
 </script>
 
 <div class='main_menu'>
 
 	<div class="top_side">
-
 		<div class='initial_side'>
 			<label for="">Property Cost</label>
 			<input type="number" bind:value={cost}>
@@ -158,6 +206,12 @@
 		</div>
 	</div>
 
+	<div class="table_buttons">
+		{#each Array(Math.floor(mortgage_period / 12)) as item, i}
+		<button on:click={() => {changeTable(i+1)}}>{i+1}</button>
+		{/each}
+	</div>
+
 	<div class="table_side">
 		<table class="result_table">
 			<thead>
@@ -171,9 +225,11 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#each forTable as item}
+				{#each yearlyTable as item, i}
 				<tr>
-					<td>{item.year}</td>
+					{#if i % 12 === 0}
+					<td rowspan="12">{item.year}</td>
+					{/if}
 					<td>{item.payment_period}</td>
 					<td><b>{selected}</b>{(Number(item.payment_each_month).toFixed(2))}</td>
 					<td><b>{selected}</b>{(Number(item.remaining_mortgage).toFixed(2))}</td>
@@ -183,6 +239,12 @@
 				{/each}
 			</tbody>
 		</table>
+
+		<div class="table_buttons">
+			{#each Array(Math.floor(mortgage_period / 12)) as item, i}
+			<button on:click={() => {changeTable(i+1)}}>{i+1}</button>
+			{/each}
+		</div>
 	</div>
 
 </div>
@@ -192,6 +254,7 @@
 		display: grid;
 		grid-template-areas:		
 		"a a"
+		"b b"
 		"c c";
 		background-color: rgb(206, 206, 206);
 	}
@@ -210,13 +273,13 @@
 	.top_side {
 		grid-area: a;
 		display: grid;
-		grid-template-areas: 'a b';
+		grid-template-areas: '1 2';
 		margin: 25px 100px;
 		/* background-color:; */
 	}
 
 	.initial_side {
-		grid-area: a;
+		grid-area: "1";
 		/* float: right; */
 		/* border: 2px red solid; */
 		margin-left: auto;
@@ -224,7 +287,7 @@
 	}
 
 	.result_side {
-		grid-area: b;
+		grid-area: "2";
 		/* border: 2px red solid; */
 	}
 	
@@ -259,6 +322,12 @@
 
 	.result_table tbody tr:nth-child(even) {
 		background-color: #f3f3f3;
+	}
+
+	.table_buttons {
+		display: flex;
+		flex-direction: row;
+		margin: 0 25px;
 	}
 
 </style>
