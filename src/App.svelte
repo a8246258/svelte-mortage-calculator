@@ -18,12 +18,12 @@
 	// 	}
 
 	// initial side
-	let cost: number = 0
-	let mortgage_period: number = 0 // period in months
-	let dp_percentage: number = 0
-	let fixed_rate: number = 0.0
-	let floating_rate: number = 0.0
-	let fixed_period: number = 0 // period dimana mortage fixed
+	let cost: number = 300000
+	let mortgage_period: number = 240 // period in months
+	let dp_percentage: number = 10
+	let fixed_rate: number = 0.05
+	let floating_rate: number = 0.11
+	let fixed_period: number = 60 // period dimana mortage fixed
 	let floating_period: number = mortgage_period - fixed_period // we don't count this
 
 	// result side
@@ -45,7 +45,7 @@
 	}
 
 	function getPaymentEachMonth(rem_mor: number, rate: number, mor_period: number): number {
-		console.log("rem_mor: "+rem_mor)
+		// console.log("rem_mor: "+rem_mor)
 		return (rem_mor * (rate / 12)) / (1 - 1 / Math.pow(1 + rate / 12, mor_period))
 	}
 
@@ -79,8 +79,8 @@
 		let multiplier = 12*(index-1) // 12
 		let upperLimit = (12*index)-1 // 23
 		
-		console.log(multiplier)
-		console.log(upperLimit)
+		// console.log(multiplier)
+		// console.log(upperLimit)
 		
 		for (multiplier; multiplier <= upperLimit; multiplier++) {
 			// yearlyTable.push(forTable[multiplier])
@@ -88,7 +88,7 @@
 			yearlyTable[11 - (upperLimit - multiplier)] = forTable[multiplier]
 		}
 		
-		console.log(yearlyTable)
+		// console.log(yearlyTable)
 	}
 
 	$: {
@@ -150,21 +150,28 @@
 				}
 	
 				if (index < fixed_period) {
-					total_fixed_payment += temp_interest_installments
+					total_fixed_payment += temp_payment_each_month
 					// grand_sum += temp_interest_installments
 					// grand_sum = Number(grand_sum).toFixed(2)
 				} else {
-					total_floating_payment += temp_interest_installments
+					total_floating_payment += temp_payment_each_month
 					// grand_sum += temp_interest_installments
 					// grand_sum = Number(grand_sum).toFixed(2)
 				}
 			}
 	
 			total_fixed_payment = +Number(total_fixed_payment).toFixed(2)
+			total_floating_payment = +Number(total_floating_payment).toFixed(2)
+			grand_sum = +Number(total_fixed_payment+total_floating_payment).toFixed(2)
 		}
 		
 	}
 </script>
+
+<svelte:head>
+	<title>Kalkulator KPR</title>
+	<html lang="en"/>
+</svelte:head>
 
 <div class='main_menu'>
 
@@ -194,11 +201,11 @@
 			<label for="">Total Fixed Interest</label>
 			<input id="" type="text" bind:value={total_fixed_payment} readonly>
 			<label for="">Total Floating Payment</label>
-			<input type="text" readonly>
+			<input type="text" bind:value={total_floating_payment} readonly>
 			<label for="total_payment">Total Payment</label>
-			<input id="total_payment" type="text" readonly>
+			<input id="total_payment" type="text" bind:value={grand_sum} readonly>
 			<label for="currency_symbol">Selected Currency</label>
-			<select id="currency_symbol" bind:value={selected} on:change={() => console.log(selected)}>
+			<select id="currency_symbol" bind:value={selected}>
 				<option value="Rp. ">IDR</option>
 				<option value="$">USD</option>
 			</select>
@@ -206,13 +213,13 @@
 		</div>
 	</div>
 
-	<div class="table_buttons">
-		{#each Array(Math.floor(mortgage_period / 12)) as item, i}
-		<button on:click={() => {changeTable(i+1)}}>{i+1}</button>
-		{/each}
-	</div>
-
+	
 	<div class="table_side">
+		<div class="table_buttons">
+			{#each Array(Math.floor(mortgage_period / 12)) as item, i}
+			<button on:click={() => {changeTable(i+1)}}>{i+1}</button>
+			{/each}
+		</div>
 		<table class="result_table">
 			<thead>
 				<tr>
@@ -220,8 +227,8 @@
 					<th>Payment Period (In Months)</th>
 					<th>Payment Each Month</th>
 					<th>Remaining Mortgage</th>
-					<th>Principal Installment</th>
 					<th>Interest Installment</th>
+					<th>Principal Installment</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -230,7 +237,15 @@
 					{#if i % 12 === 0}
 					<td rowspan="12">{item.year}</td>
 					{/if}
-					<td>{item.payment_period}</td>
+					{#if item.payment_period % 10 === 1 && (item.payment_period < 10 || item.payment_period > 14)}
+					<td><b>{item.payment_period}<sup>st</sup></b></td>
+					{:else if item.payment_period % 10 === 2 && (item.payment_period < 10 || item.payment_period > 14)}
+					<td><b>{item.payment_period}<sup>nd</sup></b></td>
+					{:else if item.payment_period % 10 === 3 && (item.payment_period < 10 || item.payment_period > 14)}
+					<td><b>{item.payment_period}<sup>rd</sup></b></td>
+					{:else}
+					<td><b>{item.payment_period}<sup>th</sup></b></td>
+					{/if}
 					<td><b>{selected}</b>{(Number(item.payment_each_month).toFixed(2))}</td>
 					<td><b>{selected}</b>{(Number(item.remaining_mortgage).toFixed(2))}</td>
 					<td><b>{selected}</b>{(Number(item.interest_installments).toFixed(2))}</td>
@@ -327,7 +342,11 @@
 	.table_buttons {
 		display: flex;
 		flex-direction: row;
-		margin: 0 25px;
+	}
+
+	.table_buttons > button {
+		margin-right: 5px;
+		border-radius: 50%;
 	}
 
 </style>
