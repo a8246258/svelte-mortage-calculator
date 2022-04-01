@@ -18,12 +18,12 @@
 	// 	}
 
 	// initial side
-	let cost: number = 300000
-	let mortgage_period: number = 240 // period in months
-	let dp_percentage: number = 10
-	let fixed_rate: number = 0.05
-	let floating_rate: number = 0.11
-	let fixed_period: number = 60 // period dimana mortage fixed
+	let cost: number = 0
+	let mortgage_period: number = 0 // period in months
+	let dp_percentage: number = 0
+	let fixed_rate: number = 0.0
+	let floating_rate: number = 0.0
+	let fixed_period: number = 0 // period dimana mortage fixed
 	let floating_period: number = mortgage_period - fixed_period // we don't count this
 
 	// result side
